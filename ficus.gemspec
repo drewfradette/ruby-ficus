@@ -4,12 +4,12 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "ficus"
-  spec.version       = '0.0.1'
+  spec.version       = '0.0.2'
   spec.authors       = ["Drew Fradette"]
   spec.email         = ["drew.fradette@gmail.com"]
   spec.description   = 'A runtime validation configuration DSL'
   spec.summary       = ''
-  spec.homepage      = "https://github.com/drewfradette/ficus"
+  spec.homepage      = "https://github.com/drewfradette/ruby-ficus"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)
