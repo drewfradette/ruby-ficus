@@ -1,3 +1,4 @@
+.rspec
 vendor
 .idea
 *.gem

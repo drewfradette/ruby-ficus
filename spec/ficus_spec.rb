@@ -70,9 +70,72 @@ describe Ficus do
     end
   end
 
-  def config_file
+  it 'should validate conformant subsections' do
+    hash = {
+        :subsections => {
+            :section1 => {:key1=>'value1'},
+            :section2 => {:key1=>'value1'},
+        }
+    }
+
+    config_file(hash) do |config|
+      config = Ficus.load(config) do
+        section 'subsections' do
+          section /^section/ do
+            required :key1
+          end
+        end
+      end
+      config.subsections.section1.key1.should eq 'value1'
+      config.subsections.section2.key1.should eq 'value1'
+    end
+  end
+
+  it 'should invalidate nonconformant subsections' do
+    hash = {
+        :subsections => {
+            :section1 => {:key1=>'value1'},
+            :section2 => {},
+        }
+    }
+
+    config_file(hash) do |config|
+      expect {
+        Ficus.load(config) do
+          section 'subsections' do
+            section /^section/ do
+              required :key1
+            end
+          end
+        end
+      }.to raise_error Ficus::ConfigError
+    end
+  end
+
+  it 'should validate all subsections' do
+    hash = {
+        :subsections => {
+            :section1 => {:key1=>'value1'},
+            :section2 => {},
+        }
+    }
+
+    config_file(hash) do |config|
+      expect {
+        Ficus.load(config) do
+          section 'subsections' do
+            section :all do
+              required :key1
+            end
+          end
+        end
+      }.to raise_error Ficus::ConfigError
+    end
+  end
+
+  def config_file(hash=@config)
     Tempfile.open('config.yml') do |config|
-      config.write @config.to_yaml
+      config.write hash.to_yaml
       config.close
 
       yield config.path
