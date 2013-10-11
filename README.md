@@ -36,6 +36,13 @@ section_2:
 
 optional_section:
   key5: value5
+
+pattern_section_1:
+  key6: value6
+
+pattern_section_2:
+  key6: value6
+
 ```
 
 And now we can use Ficus to load the config and validate it at the same time.
@@ -60,6 +67,10 @@ config = Ficus.load 'config.yml' do
   end
 
   section 'not_defined', :optional => true do
+    require 'key6'
+  end
+
+  section /^pattern_section_.+/ do
     require 'key6'
   end
 end

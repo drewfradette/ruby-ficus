@@ -27,7 +27,6 @@ class Ficus < RecursiveOpenStruct
 
   def section(name, args = {}, &block)
     sections(name).each do |section|
-      puts "section:#{section}"
       if section.nil?
         level = args[:optional] ? 'WARN' : 'ERR'
         Ficus.log "[#{level}] Section #{name} is not defined"
@@ -44,16 +43,9 @@ class Ficus < RecursiveOpenStruct
     elsif name.is_a? String
       [self.send(name)]
     elsif name.is_a? Regexp
-      require 'json'
-      puts "dump:#{self.marshal_dump.to_json}"
-
-      self.marshal_dump.map do |k,v|
-        k
-      end.reject do |k|
-        k == :parent
-      end.map do |k|
-        self.send(k)
-      end
+      self.marshal_dump.keys.map{|k|
+        self.send(k) unless k == :parent
+      }.compact!
     end
   end
 
