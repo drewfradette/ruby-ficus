@@ -15,7 +15,7 @@ class Ficus < RecursiveOpenStruct
       errors = log.select{|v| v =~ /^\[ERR\]/}
       if errors.size > 0
         log.each{|v| puts v} if ENV['DEBUG']
-        raise ConfigError.new("Unable to start due to invalid settings")
+        raise ConfigError.new('Unable to start due to invalid settings')
       end
       config
     end
@@ -26,13 +26,26 @@ class Ficus < RecursiveOpenStruct
   end
 
   def section(name, args = {}, &block)
-    section = self.send(name)
-    if section.nil?
-      level = args[:optional] ? 'WARN' : 'ERR'
-      Ficus.log "[#{level}] Section #{name} is not defined"
-    else
-      section.parent = self.parent ? "#{self.parent}.#{name}" : name
-      section.instance_eval &block if block_given?
+    sections(name).each do |section|
+      if section.nil?
+        level = args[:optional] ? 'WARN' : 'ERR'
+        Ficus.log "[#{level}] Section #{name} is not defined"
+      else
+        section.parent = self.parent ? "#{self.parent}.#{name}" : name
+        section.instance_eval &block if block_given?
+      end
+    end
+  end
+
+  def sections(name)
+    if name == :all
+      sections(/.*/)
+    elsif name.is_a? String
+      [self.send(name)]
+    elsif name.is_a? Regexp
+      self.marshal_dump.keys.map{|k|
+        self.send(k) unless k == :parent
+      }.compact!
     end
   end
 
