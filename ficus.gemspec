@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "ficus"
-  spec.version       = '0.0.3'
+  spec.version       = '0.0.4'
   spec.authors       = ["Drew Fradette"]
   spec.email         = ["drew.fradette@gmail.com"]
   spec.description   = 'A runtime validation configuration DSL'

@@ -1,9 +1,9 @@
 $:.unshift File.join(File.dirname(__FILE__), '..')
 
 require 'rspec'
+require 'logger'
 
 if RUBY_VERSION.to_f >= 1.9
-  puts 'Enabling coverage'
   require 'simplecov'
   SimpleCov.add_filter 'vendor'
   SimpleCov.add_filter 'spec'
