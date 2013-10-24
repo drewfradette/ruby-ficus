@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "ficus"
-  spec.version       = '0.0.4'
+  spec.version       = '0.0.5'
   spec.authors       = ["Drew Fradette"]
   spec.email         = ["drew.fradette@gmail.com"]
   spec.description   = 'A runtime validation configuration DSL'
@@ -22,5 +22,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'simplecov' if RUBY_VERSION >= '1.9'
 
-  #spec.add_dependency 'recursive-open-struct'
+  spec.add_dependency 'recursive-open-struct', '>= 0.4.5'
 end
