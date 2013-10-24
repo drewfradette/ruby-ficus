@@ -2,10 +2,6 @@
 
 A simple YAML configuration DSL that does runtime validation.
 
-## Important Note
-This uses the [`recursive-open-struct`](https://github.com/aetherknight/recursive-open-struct) but due to gem missing a [crucial fix](https://github.com/aetherknight/recursive-open-struct/commit/0c16caa1b9a19d12e97829f02083f0b7d21f0100) 
-I have simply added the latest version with the fix to the `lib`. When it's fixed in rubygems, I will add it as a gem dependency.
-
 ## Installation
 
 Add this line to your application's Gemfile:
