@@ -1,7 +1,22 @@
-class Ficus < RecursiveOpenStruct
+class Ficus
+
+  attr_reader :struct
+
+  def initialize(struct)
+    @struct = struct
+  end
+
+  def parent
+    struct.parent
+  end
+
+  def parent=(parent)
+    struct.parent = parent
+  end
+
   def section(name, args = {}, &block)
     sections(name).each do |s|
-      s.parent = self.parent ? "#{self.parent}.#{name}" : name
+      s.parent = parent ? "#{parent}.#{name}" : name
       s.instance_eval(&block) if block_given?
     end
   rescue NoSection
@@ -16,21 +31,35 @@ class Ficus < RecursiveOpenStruct
     if name == :all
       sections(/.*/)
     elsif name.is_a? Regexp
-      matches = self.marshal_dump.keys
-      matches.map { |k| self.send(k) unless k == :parent }.compact!
+      matches = self.struct.marshal_dump.keys
+      matches.map do |k|
+        unless k == :parent
+          recurse k
+        end
+      end.compact!
     else
-      s = self.send(name)
-      raise NoSection.new if s.nil?
-      [s]
+      [recurse(name)].tap do |array|
+        raise NoSection.new if array.first.nil?
+      end
     end
   end
 
   def optional(name, default)
-    self.send("#{name}=", default) if self.send(name).nil?
+    struct.send("#{name}=", default) if struct.send(name).nil?
   end
 
   def required(name)
-    prefix = self.parent ? "#{self.parent}." : nil
-    Ficus.error "Option #{prefix}#{name} is not defined" if self.send(name).nil?
+    prefix = "#{parent}." if parent
+    Ficus.error "Option #{prefix}#{name} is not defined" if struct.send(name).nil?
   end
+
+  def recurse(symbol, default=nil)
+    s = struct.send symbol
+    if s.nil?
+      struct.send("#{symbol}=", default) if s.nil?
+      s = default
+    end
+    Ficus.new s if !!s
+  end
+
 end
