@@ -10,7 +10,7 @@ class Ficus
     end
 
     def to_s
-      "Validation failed:\n #{errors.map.join("\t\n")}"
+      "Validation failed:\n #{errors.join("\t\n")}"
     end
   end
 
