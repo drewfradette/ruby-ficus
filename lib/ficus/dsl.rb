@@ -1,9 +1,9 @@
 class Ficus
 
-  attr_reader :struct
+  attr_reader :struct, :errors
 
-  def initialize(struct)
-    @struct = struct
+  def initialize(struct, errors=[])
+    @struct, @errors = struct, errors
   end
 
   def parent
@@ -20,10 +20,8 @@ class Ficus
       s.instance_eval(&block) if block_given?
     end
   rescue NoSection
-    if args[:optional] == true
-      Ficus.warning("Section #{name} is not defined")
-    else
-      Ficus.error("Section #{name} is not defined")
+    unless args[:optional]
+      errors << "Section #{name} is not defined"
     end
   end
 
@@ -50,16 +48,12 @@ class Ficus
 
   def required(name)
     prefix = "#{parent}." if parent
-    Ficus.error "Option #{prefix}#{name} is not defined" if struct.send(name).nil?
+    errors << "Option #{prefix}#{name} is not defined" if struct.send(name).nil?
   end
 
   def recurse(symbol, default=nil)
-    s = struct.send symbol
-    if s.nil?
-      struct.send("#{symbol}=", default) if s.nil?
-      s = default
-    end
-    Ficus.new s if !!s
+    s = struct.send symbol || struct.send("#{symbol}=", default) || default
+    Ficus.new(s, errors) if !!s
   end
 
 end

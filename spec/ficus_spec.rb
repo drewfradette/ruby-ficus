@@ -5,7 +5,6 @@ require 'ficus'
 
 describe Ficus do
   before :each do
-    Ficus.logger = logger
     @config = {
       :general => {:key1=>'value1', :key2=>'value2', :key3=>'value3'},
       :misc    => {
@@ -22,37 +21,33 @@ describe Ficus do
     end
   end
 
-  it 'should load the config with a warning about a missing section' do
+  it 'should load the config with an optional missing section' do
     config_file do |config|
       config = Ficus.load(config) do
         section 'not_real', :optional => true
       end
-      Ficus.warnings.size.should eq 1
     end
   end
 
   it 'should load the config with a error about a missing section' do
     config_file do |config|
-      expect do
+      expect_errors(1) do
         config = Ficus.load(config) do
           section 'not_real'
         end
-      end.to raise_error Ficus::ConfigError
-
-      Ficus.errors.size.should eq 1
+      end
     end
   end
 
   it 'should load the config but fail to validate' do
     config_file do |config|
-      expect do
+      expect_errors(1) do
         config = Ficus.load(config) do
           section 'general', :optional => true do
             required 'fake_param'
           end
         end
-      end.to raise_error Ficus::ConfigError
-      Ficus.errors.size.should eq 1
+      end
     end
   end
 
@@ -129,6 +124,12 @@ describe Ficus do
         end
       end.to raise_error Ficus::ConfigError
     end
+  end
+
+  def expect_errors(num_errors, &block)
+    yield
+  rescue Ficus::ConfigError => bang
+    bang.errors.size.should eq num_errors
   end
 
   def config_file(hash=@config)
