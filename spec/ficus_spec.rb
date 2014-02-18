@@ -126,6 +126,51 @@ describe Ficus do
     end
   end
 
+  it 'should validate a template' do
+    hash = {
+        :section1=> {:key1=>'value1'}
+    }
+
+    config_file(hash) do |config|
+      config = Ficus.load(config) do
+        template 'template1' do
+          required :key1
+        end
+        section 'section1', :template=>'template1'
+      end
+      config.section1.key1.should eq 'value1'
+    end
+  end
+
+  it 'should report a configuration error for a failure to conform to a template' do
+    hash = {
+        :section1=> {}
+    }
+
+    config_file(hash) do |config|
+      expect {
+        Ficus.load(config) do
+          template 'template1' do
+            required :key1
+          end
+          section 'section1', :template=>'template1'
+        end
+      }.to raise_error Ficus::ConfigError
+    end
+  end
+
+  it 'should fail to validate a reference to an invalid template' do
+    config_file({
+        :section1=>{}
+                }) do |config|
+      expect {
+        Ficus.load(config) do
+          section 'section1', :template=>'template1'
+        end
+      }.to raise_error Ficus::ValidateError
+    end
+  end
+
   def expect_errors(num_errors, &block)
     yield
   rescue Ficus::ConfigError => bang
