@@ -1,5 +1,7 @@
 # Ficus
 
+[![Build Status](https://travis-ci.org/drewfradette/ruby-ficus.png?branch=master)](https://travis-ci.org/drewfradette/ruby-ficus)
+
 A simple YAML configuration DSL that does runtime validation.
 
 ## Installation
