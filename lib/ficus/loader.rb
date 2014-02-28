@@ -12,7 +12,11 @@ class Ficus
     protected
 
     def config(file)
-      RecursiveOpenStruct.new(YAML.load(File.read(file), :recurse_over_arrays=>false))
+      RecursiveOpenStruct.new(YAML.load(File.read(file)), :recurse_over_arrays=>false)
+    end
+
+    def read
+
     end
 
   end
