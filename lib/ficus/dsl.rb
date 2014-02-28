@@ -1,9 +1,14 @@
 class Ficus
 
-  attr_reader :struct, :errors
+  attr_reader :struct, :errors, :templates
 
   def initialize(struct, errors=[])
     @struct, @errors = struct, errors
+
+    # Fail if attempt is made to reference an invalid template
+    @templates = Hash.new{ |hash, key|
+      fail Ficus::ValidateError.new "Invalid template: #{key}"
+    }
   end
 
   def parent
@@ -14,10 +19,15 @@ class Ficus
     struct.parent = parent
   end
 
+  def template(name, &block)
+    templates[name] = block
+  end
+
   def section(name, args = {}, &block)
     sections(name).each do |s|
       s.parent = parent ? "#{parent}.#{name}" : name
       s.instance_eval(&block) if block_given?
+      s.instance_eval(&templates[args[:template]]) if args[:template]
     end
   rescue NoSection
     unless args[:optional]
