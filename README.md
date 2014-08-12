@@ -48,7 +48,9 @@ And now we can use Ficus to load the config and validate it at the same time.
 ```ruby
 require 'ficus'
 
-config = Ficus.load 'config.yml' do
+ficus = Ficus.load 'config.yml'
+
+ficus.validation do
   section 'section_1' do
     required 'key1'
     required 'key2'
@@ -73,11 +75,14 @@ config = Ficus.load 'config.yml' do
   end
 end
 
-config.section_1.key1         # value1
-config.section_1.key2         # value2
-config.section_1.key3         # value3
-config.section_2.key4         # value4
-config.not_defined            # nil
+if ficus.valid?
+  ficus.config['section_1']['key1']     # value1
+  ficus.config['section_1']['key2']     # value2
+  ficus.config['section_1']['key3']     # value3
+  ficus.config['section_2']['key4']     # value4
+else
+ ficus.errors.each { |err| puts err.to_s }
+end
 ```
 
 ## Contributing

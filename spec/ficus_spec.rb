@@ -1,191 +1,253 @@
 require 'spec_helper'
 require 'tempfile'
-require 'yaml'
+
 require 'ficus'
 
 describe Ficus do
-  before :each do
-    @config = {
-      :general => {:key1=>'value1', :key2=>'value2', :key3=>'value3'},
-      :misc    => {
-        :key4 => 'value4',
-        :list => {:item1 => 'value1', :item2 => 'value2'}
-      }
+  def config
+    {
+      'general' => {'key1' => 'value1', 'key2' => 'value2', 'key3' =>'value3'},
+      'misc' => {'key4' => 'value4', 'list' => {
+        'item1' => 'value1',
+        'item2' => 'value2'
+      }}
     }
   end
 
-  it 'should load the config without any validation' do
-    config_file do |config|
-      config = Ficus.load(config)
-      config.to_h.should eq @config
+  it 'will load the config from a string' do
+    ficus = Ficus.load(config)
+    expect(ficus.config).to eq config
+  end
+
+  it 'will load the config from a file' do
+    Tempfile.open('config.yml') do |file|
+      file.write config.to_yaml
+      file.close
+
+      ficus = Ficus.load_file file.path
+      expect(ficus.config).to eq config
     end
   end
 
-  it 'should load the config with an optional missing section' do
-    config_file do |config|
-      config = Ficus.load(config) do
-        section 'not_real', :optional => true
+  it 'will validate the config with an optional missing section' do
+    Ficus.load(config).tap do |ficus|
+      ficus.validation do
+        section 'not_real', optional: true
       end
+      expect(ficus.valid?).to eq true
     end
   end
 
-  it 'should load the config with a error about a missing section' do
-    config_file do |config|
-      expect_errors(1) do
-        config = Ficus.load(config) do
-          section 'not_real'
+  it 'will fail to validate the config due to a missing section' do
+    Ficus.load(config).tap do |ficus|
+      ficus.validation do
+        section 'not_real'
+      end
+
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.size).to eq 1
+      expect(ficus.errors.first.to_s).to match(/not_real/)
+    end
+  end
+
+  it 'will fail to validate the config due to a required parameter' do
+    Ficus.load(config).tap do |ficus|
+      ficus.validation do
+        section 'general', optional: true do
+          required 'fake_param'
         end
       end
+
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.size).to eq 1
+      expect(ficus.errors.first.to_s).to match(/general.fake_param/)
     end
   end
 
-  it 'should load the config but fail to validate' do
-    config_file do |config|
-      expect_errors(1) do
-        config = Ficus.load(config) do
-          section 'general', :optional => true do
-            required 'fake_param'
-          end
-        end
-      end
-    end
-  end
-
-  it 'should load the config but fill in the optional value' do
-    config_file do |config|
-      config = Ficus.load(config) do
+  it 'will validate the config and fill in the optional value' do
+    Ficus.load(config).tap do |ficus|
+      ficus.validation do
         section 'general' do
           optional 'newparam', 'value2'
         end
       end
-      @config.fetch(:general).fetch('newparam', nil).should eq nil
-      config.general.newparam.should eq 'value2'
+
+      expect(ficus.valid?).to eq true
+      expect(ficus.config['general']['newparam']).to eq 'value2'
     end
   end
 
-  it 'should validate conformant subsections' do
-    hash = {
-        :subsections => {
-            :section1 => {:key1=>'value1'},
-            :section2 => {:key1=>'value1'},
-        }
-    }
+  it 'will validate conformant subsections' do
+    hash = {'subsections' => {'section1' => {'key1' => 'value1'}, 'section2' => {'key1' => 'value1'}}}
 
-    config_file(hash) do |config|
-      config = Ficus.load(config) do
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
         section 'subsections' do
           section /^section/ do
-            required :key1
+            required 'key1'
           end
         end
       end
-      config.subsections.section1.key1.should eq 'value1'
-      config.subsections.section2.key1.should eq 'value1'
+
+      expect(ficus.valid?).to eq true
+      expect(ficus.config['subsections']['section1']['key1']).to eq 'value1'
+      expect(ficus.config['subsections']['section2']['key1']).to eq 'value1'
     end
   end
 
-  it 'should invalidate nonconformant subsections' do
-    hash = {
-        :subsections => {
-            :section1 => {:key1=>'value1'},
-            :section2 => {},
-        }
-    }
+  it 'will fail to validate nonconformant subsections' do
+    hash = {'subsections' => {'section1' => {'key1' => 'value1'}, 'section2' => {}}}
 
-    config_file(hash) do |config|
-      expect do
-        Ficus.load(config) do
-          section 'subsections' do
-            section /^section/ do
-              required :key1
-            end
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        section 'subsections' do
+          section /^section/ do
+            required 'key1'
           end
         end
-      end.to raise_error Ficus::ConfigError
+      end
+
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.size).to eq 1
+      expect(ficus.errors.first.to_s).to match(/subsections.section2.key1/)
     end
   end
 
-  it 'should validate all subsections' do
-    hash = {
-        :subsections => {
-            :section1 => {:key1=>'value1'},
-            :section2 => {},
-        }
-    }
+  it 'will fail validate all subsections' do
+    hash = {'subsections' => {'section1' => {'key1' => 'value1'},'section2' => {}}}
 
-    config_file(hash) do |config|
-      expect do
-        Ficus.load(config) do
-          section 'subsections' do
-            section :all do
-              required :key1
-            end
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        section 'subsections' do
+          section :all do
+            required 'key1'
           end
         end
-      end.to raise_error Ficus::ConfigError
+      end
+
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.size).to eq 1
+      expect(ficus.errors.first.to_s).to match(/subsections.section2.key1/)
     end
   end
 
-  it 'should validate a template' do
-    hash = {
-        :section1=> {:key1=>'value1'}
-    }
+  it 'will validate based on a template' do
+    hash = {'section1' => {'key1' => 'value1'}}
 
-    config_file(hash) do |config|
-      config = Ficus.load(config) do
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
         template 'template1' do
-          required :key1
+          required 'key1'
+        end
+        section 'section1', template: 'template1'
+      end
+      expect(ficus.valid?).to eq true
+      expect(ficus.config['section1']['key1']).to eq 'value1'
+    end
+  end
+
+  it 'will fail to validate due to failing to conform to a template' do
+    hash = {'section1' => {}}
+
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        template 'template1' do
+          required 'key1'
         end
         section 'section1', :template=>'template1'
       end
-      config.section1.key1.should eq 'value1'
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.size).to eq 1
+      expect(ficus.errors.first.to_s).to match(/section1.key1/)
     end
   end
 
-  it 'should report a configuration error for a failure to conform to a template' do
-    hash = {
-        :section1=> {}
-    }
+  it 'will fail to validate a reference to an invalid template' do
+    hash = {'section1' => {}}
 
-    config_file(hash) do |config|
-      expect {
-        Ficus.load(config) do
-          template 'template1' do
-            required :key1
-          end
-          section 'section1', :template=>'template1'
-        end
-      }.to raise_error Ficus::ConfigError
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        section 'section1', template: 'template1'
+      end
+
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.first.to_s).to match(/undefined template template1/)
     end
   end
 
-  it 'should fail to validate a reference to an invalid template' do
-    config_file({
-        :section1=>{}
-                }) do |config|
-      expect {
-        Ficus.load(config) do
-          section 'section1', :template=>'template1'
-        end
-      }.to raise_error Ficus::ValidateError
+  it 'will fail to validate due to a parameter definde as a section' do
+    hash = {'section1' => 'notarealsection'}
+
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        section 'section1'
+      end
+
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.size).to eq 1
+      expect(ficus.errors.first.to_s).to match(/must be/i)
     end
   end
 
-  def expect_errors(num_errors, &block)
-    yield
-  rescue Ficus::ConfigError => bang
-    bang.errors.size.should eq num_errors
-  end
+  it 'will validate with type checking on optional parameters' do
+    hash = {'number' => 3}
 
-  def config_file(hash=@config)
-    Tempfile.open('config.yml') do |config|
-      config.write hash.to_yaml
-      config.close
-      yield config.path
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        optional 'number', 1,     :number
+        optional 'bool',   true,  :boolean
+        optional 'name',  'drew', :string
+        optional 'matcher', 'server5', /server\d/
+      end
+
+      expect(ficus.valid?).to eq true
     end
   end
 
-  def logger
-    Logger.new(STDOUT).tap { |log| log.level = Logger::FATAL }
+  it 'will fail to validate with type checking on optional parameters' do
+    hash = {}
+
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        optional 'number',  false,      :number
+        optional 'bool',    'drew',     :boolean
+        optional 'name',    123,        :string
+        optional 'matcher', 'server5',  /zzzserver\d/
+      end
+
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.size).to eq 4
+    end
+  end
+  it 'will validate with type checking on required parameters' do
+    hash = {'number' => 1, 'bool' => false,'name' => "drew"}
+
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        required 'number', :number
+        required 'bool',   :boolean
+        required 'name',   :string
+      end
+
+      expect(ficus.valid?).to eq true
+    end
+  end
+
+  it 'will fail to validate due to type checking on required parameters' do
+    hash = {'number' => false, 'bool' => "nope",'name' => 1}
+
+    Ficus.load(hash).tap do |ficus|
+      ficus.validation do
+        required 'number', :number
+        required 'bool',   :boolean
+        required 'name',   :string
+      end
+
+      expect(ficus.valid?).to eq false
+      expect(ficus.errors.size).to eq 3
+      ficus.errors.each do |error|
+        expect(error.to_s).to match(/must be/)
+      end
+    end
   end
 end
