@@ -48,7 +48,7 @@ And now we can use Ficus to load the config and validate it at the same time.
 ```ruby
 require 'ficus'
 
-ficus = Ficus.load 'config.yml'
+ficus = Ficus.load_file 'config.yml'
 
 ficus.validation do
   section 'section_1' do

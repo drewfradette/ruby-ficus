@@ -1,6 +1,8 @@
 require 'yaml'
 
 class Ficus
+  class MissingValidation < StandardError; end
+
   class << self
     def load_file(filename)
       Ficus.load(YAML.load_file(filename))
@@ -23,9 +25,9 @@ class Ficus
 
   def initialize(config, opts = {})
     self.config = config
-    self.errors = []
     self.opts = opts
     self.templates = {}
+    self.errors = []
   end
 
   def validation(&block)
@@ -33,13 +35,18 @@ class Ficus
   end
 
   def valid?
+    raise MissingValidation.new('no validation block specified') if self.schema.nil?
     self.errors = []
-    instance_eval(&self.schema) unless self.schema.nil?
+    instance_eval(&self.schema)
     return self.errors.empty?
   end
 
   def config
     @config ||= {}
+  end
+
+  def template(name, &block)
+    self.templates[name] = block
   end
 
   def section(name, section_opts = {}, &block)
@@ -81,10 +88,6 @@ class Ficus
     end
   end
 
-  def template(name, &block)
-    self.templates[name] = block
-  end
-
   def optional(name, default, type = nil)
     value = exists?(name) ? get(name) : default
     if !valid_type?(value, type)
@@ -116,15 +119,11 @@ class Ficus
     self.config.fetch(key)
   end
 
-  def opt(key, default)
-    self.opts.fetch(key, default)
-  end
-
   def heritage(postfix = nil)
     if postfix.nil?
-      self.opt(:heritage, [])
+      self.opts.fetch(:heritage, [])
     else
-      self.opt(:heritage, []) + [postfix.to_s]
+      self.opts.fetch(:heritage, []) + [postfix.to_s]
     end
   end
 
@@ -142,7 +141,6 @@ class Ficus
   end
 
   # Ensure value is a valid type.
-  # TODO: Consider lambdas or procs as validators too.
   def valid_type?(value, type)
     if type.nil?
       return true

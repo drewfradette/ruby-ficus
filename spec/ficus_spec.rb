@@ -250,4 +250,11 @@ describe Ficus do
       end
     end
   end
+
+  it 'will raise an exception if no validation block is specified' do
+    Ficus.load({'key' => 'value'}).tap do |ficus|
+      expect(ficus.schema).to eq nil
+      expect{ficus.valid?}.to raise_error(::Ficus::MissingValidation)
+    end
+  end
 end
