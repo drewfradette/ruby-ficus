@@ -32,6 +32,7 @@ class Ficus
 
   def validation(&block)
     self.schema = block
+    return self
   end
 
   def valid?

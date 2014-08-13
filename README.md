@@ -85,6 +85,8 @@ else
 end
 ```
 
+For more examples, see the `examples` directory.
+
 ## Contributing
 
 1. Fork it

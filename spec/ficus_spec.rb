@@ -257,4 +257,13 @@ describe Ficus do
       expect{ficus.valid?}.to raise_error(::Ficus::MissingValidation)
     end
   end
+
+  it 'will allow you to chain the validation method' do
+    ficus = Ficus.load({'some' => 'data'}).validation do
+      required 'some', :string
+    end
+
+    expect(ficus.class).to eq Ficus
+    expect(ficus.schema).not_to be_nil
+  end
 end
