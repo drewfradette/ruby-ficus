@@ -17,7 +17,7 @@ class Ficus
 
   TYPES = {
     string:  [String],
-    number:  [Fixnum, Float],
+    number:  [Integer, Float],
     boolean: [TrueClass, FalseClass],
     array:   [Array],
     section: [Hash],
